@@ -1,0 +1,74 @@
+# Builds prebuilt tarballs when a v* tag is pushed and attaches them to a GitHub release.
+# Linux is built in Debian 12, so the binary needs glibc 2.34+ (Arch, Fedora, Debian 12+, Ubuntu 22.04+).
+# macOS binaries are built for Apple silicon and Intel on an arm64 runner.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    container: rust:1-bookworm
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: cargo build --release --locked
+      - name: Package
+        run: |
+          mkdir -p pkg/everdir
+          cp target/release/everdir install.sh uninstall.sh LICENSE README.md pkg/everdir/
+          cp -r dist pkg/everdir/
+          tar -C pkg -czf everdir-x86_64-linux.tar.gz everdir
+          sha256sum everdir-x86_64-linux.tar.gz > everdir-x86_64-linux.tar.gz.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: everdir-x86_64-linux.tar.gz*
+
+  macos:
+    runs-on: macos-14
+    strategy:
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            arch: aarch64
+          - target: x86_64-apple-darwin
+            arch: x86_64
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: |
+          rustup update stable
+          rustup target add ${{ matrix.target }}
+          cargo build --release --locked --target ${{ matrix.target }}
+      - name: Package
+        run: |
+          name=everdir-${{ matrix.arch }}-macos.tar.gz
+          mkdir -p pkg/everdir
+          cp target/${{ matrix.target }}/release/everdir install.sh uninstall.sh LICENSE README.md pkg/everdir/
+          cp -r dist pkg/everdir/
+          tar -C pkg -czf $name everdir
+          shasum -a 256 $name > $name.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-${{ matrix.arch }}
+          path: everdir-${{ matrix.arch }}-macos.tar.gz*
+
+  release:
+    needs: [linux, macos]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: everdir-*.tar.gz*

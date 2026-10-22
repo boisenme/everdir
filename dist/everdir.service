@@ -1,0 +1,13 @@
+[Unit]
+Description=everdir file index + disk usage UI (http://127.0.0.1:7171)
+
+After=graphical-session.target
+
+[Service]
+ExecStart=%h/.local/bin/everdir serve
+Restart=on-failure
+Nice=10
+IOSchedulingClass=idle
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>everdir</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<style>
+:root{--bg:#15171c;--panel:#1c1f26;--line:#2a2e37;--fg:#d8dbe1;--dim:#8a909b;--acc:#5aa2ff;--sel:#264a7a;--hov:#232731;--bad:#e5534b;font:13px/1.35 system-ui,sans-serif;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg)}
+body{display:grid;grid-template-rows:auto var(--top,42vh) 5px auto 1fr 24px;height:100vh;overflow:hidden}
+header{display:flex;gap:8px;align-items:center;padding:8px;border-bottom:1px solid var(--line)}
+#q{flex:1;background:var(--panel);border:1px solid var(--line);color:var(--fg);padding:7px 10px;border-radius:6px;font-size:14px;outline:none}
+#q:focus{border-color:var(--acc)}
+#count{color:var(--dim);white-space:nowrap;font-variant-numeric:tabular-nums}
+button{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 10px;cursor:pointer;font:inherit}
+button:hover{border-color:var(--acc)}
+#top{display:grid;grid-template-columns:1fr 290px;min-height:0;border-bottom:1px solid var(--line)}
+.pane{display:flex;flex-direction:column;min-height:0;min-width:0}
+.head,.row{display:grid;align-items:center;gap:8px;padding:0 8px;height:22px;white-space:nowrap}
+.head{color:var(--dim);border-bottom:1px solid var(--line);background:var(--panel);font-size:12px;user-select:none}
+.head span[data-s]{cursor:pointer}.head span[data-s]:hover{color:var(--fg)}
+.list{position:relative;overflow:auto;flex:1;min-height:0;outline:none}
+.vin{position:relative}
+.row{position:absolute;left:0;right:0;cursor:default}
+.row:hover{background:var(--hov)}
+.row.sel{background:var(--sel)}
+.row>span{overflow:hidden;text-overflow:ellipsis}
+.tree .head,.tree .row{grid-template-columns:minmax(220px,1fr) 110px 52px 78px 80px 118px}
+.search .head,.search .row{grid-template-columns:minmax(200px,1.1fr) minmax(200px,1.6fr) 84px 118px}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.dim{color:var(--dim)}
+.tw{display:inline-block;width:14px;font-style:normal;color:var(--dim);cursor:pointer;text-align:center}
+.ic{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 6px 0 2px;vertical-align:-1px}
+.ic.dir{background:#c9a24a;border-radius:1px 3px 2px 2px}
+.bar{height:10px;background:#262a33;border-radius:2px;overflow:hidden}
+.bar b{display:block;height:100%;background:linear-gradient(90deg,#3d6fb8,#5aa2ff)}
+.more{color:var(--acc);cursor:pointer}
+#exts .row{grid-template-columns:14px 1fr 70px 46px;cursor:pointer}
+#exts .row.on{background:var(--sel)}
+#exts .ic{margin:0}
+#split{cursor:row-resize;background:var(--line)}
+#split:hover{background:var(--acc)}
+#crumbs{display:flex;gap:2px;align-items:center;padding:4px 8px;border-bottom:1px solid var(--line);overflow:hidden;white-space:nowrap;font-size:12px}
+#crumbs a{color:var(--acc);cursor:pointer;padding:1px 3px;border-radius:3px}#crumbs a:hover{background:var(--hov)}
+#crumbs .sep{color:var(--dim)}
+#tmbox{position:relative;min-height:0;overflow:hidden;background:#181a1e}
+#tmbox canvas{position:absolute;inset:0;width:100%;height:100%}
+#foot{display:flex;gap:12px;align-items:center;padding:0 8px;border-top:1px solid var(--line);color:var(--dim);font-size:12px;white-space:nowrap;overflow:hidden}
+#hov{flex:1;overflow:hidden;text-overflow:ellipsis;color:var(--fg)}
+#menu{position:fixed;z-index:10;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:4px;min-width:220px;box-shadow:0 8px 30px #0008;display:none}
+#menu div{padding:5px 10px;border-radius:4px;cursor:pointer;display:flex;justify-content:space-between;gap:16px}
+#menu div:hover{background:var(--sel)}
+#menu div kbd{color:var(--dim);font:inherit}
+#menu .danger{color:var(--bad)}
+#menu hr{border:0;border-top:1px solid var(--line);margin:4px 0}
+dialog{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:18px;max-width:640px}
+dialog::backdrop{background:#0009}
+dialog h3{margin:0 0 8px}
+dialog code{word-break:break-all;color:var(--dim)}
+dialog .btns{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+dialog .go{background:var(--sel);border-color:var(--acc)}
+dialog.perm .go{background:#5a1f1c;border-color:var(--bad)}
+#toast{position:fixed;right:12px;bottom:34px;display:flex;flex-direction:column;gap:6px;z-index:20}
+#toast div{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--acc);padding:8px 12px;border-radius:6px;max-width:520px;word-break:break-all}
+#toast div.bad{border-left-color:var(--bad)}
+.empty{padding:20px;color:var(--dim)}
+#drv{width:min(720px,calc(100vw - 32px));max-width:none}
+#drv .d{display:grid;grid-template-columns:22px 1fr auto auto;gap:4px 10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+#drv .d:first-of-type{border-top:0}
+#drv .d.off .info{opacity:.55}
+#drv .mp{font-weight:600}
+#drv .sub{color:var(--dim);font-size:12px;grid-column:2/-1}
+#drv .sub.busy{color:var(--acc)}
+#drv .sub.bad{color:var(--bad)}
+#drv select{background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:5px 6px;font:inherit}
+#drv input[type=checkbox]{width:16px;height:16px;accent-color:var(--acc)}
+#drv .note{color:var(--dim);font-size:12px;margin:4px 0 0}
+#drv .paths{grid-column:2/-1;display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px}
+#drv .d.off .paths{opacity:.55}
+#drv .chip{display:inline-flex;align-items:center;background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:1px 2px 1px 7px;word-break:break-all}
+#drv .chip b{cursor:pointer;color:var(--dim);font-weight:normal;padding:0 5px}
+#drv .chip b:hover{color:var(--bad)}
+#drv .paths button{padding:2px 8px;font-size:12px}
+#drv .paths input{flex:1;min-width:260px;background:var(--bg);color:var(--fg);border:1px solid var(--acc);border-radius:4px;padding:3px 6px;font:inherit;outline:none}
+#drv .addf{display:flex;gap:8px;padding:10px 0 4px;border-top:1px solid var(--line)}
+#drv .addf input{flex:1;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;font:inherit;outline:none}
+#drv .addf input:focus{border-color:var(--acc)}
+#vwrap{position:relative}
+.meter{display:inline-block;width:70px;height:7px;background:var(--line);border-radius:4px;overflow:hidden;vertical-align:middle}
+.meter b{display:block;height:100%;background:var(--acc)}
+.meter.hi b{background:var(--bad)}
+#view{max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#vpop{position:absolute;right:0;top:calc(100% + 4px);z-index:10;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:4px;min-width:280px;box-shadow:0 8px 30px #0008;display:none}
+#vpop.on{display:block}
+#vpop label{display:grid;grid-template-columns:18px 1fr auto auto auto;gap:8px;align-items:center;padding:6px 8px;border-radius:4px;cursor:pointer;white-space:nowrap}
+#vpop label:hover{background:var(--hov)}
+#vpop input{width:15px;height:15px;margin:0;accent-color:var(--acc)}
+#vpop .act{display:flex;gap:6px;justify-content:flex-end;padding:6px 4px 2px;border-top:1px solid var(--line);margin-top:4px}
+#vpop .act button{padding:3px 8px;font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <input id="q" placeholder="Search all files…   (ext:mp4,mkv  size:>1g  dir:  file:  path/part)" autocomplete="off" spellcheck="false" autofocus>
+  <span id="count"></span>
+  <span id="vwrap" hidden><button id="view" title="Choose which drives the tree, treemap and search show"></button><div id="vpop"></div></span>
+  <button id="drives" title="Choose which drives and folders to index, and how often">Drives</button>
+  <button id="rescan" title="Rescan the drives shown now">Rescan</button>
+</header>
+<div id="top">
+  <div class="pane tree" id="main">
+    <div class="head" id="mhead"></div>
+    <div class="list" id="list" tabindex="0"></div>
+  </div>
+  <div class="pane" id="exts" style="border-left:1px solid var(--line)">
+    <div class="head" style="grid-template-columns:14px 1fr 70px 46px"><span></span><span>Extension</span><span class="num">Size</span><span class="num">%</span></div>
+    <div class="list" id="elist"></div>
+  </div>
+</div>
+<div id="split"></div>
+<div id="crumbs"></div>
+<div id="tmbox"><canvas id="cv"></canvas><canvas id="ov"></canvas></div>
+<div id="foot"><span id="hov"></span><span id="stat"></span></div>
+<div id="menu"></div>
+<dialog id="dlg"><h3 id="dt"></h3><div id="db"></div><div class="btns"><button value="no" id="dno">Cancel</button><button class="go" id="dyes"></button></div></dialog>
+<dialog id="drv"><h3>Drives</h3><div id="dlist"></div>
+  <div class="addf"><input id="addp" type="text" spellcheck="false" autocomplete="off" placeholder="Add any folder as a drive of its own, e.g. a network share like /mnt/nas/photos"><button id="addb">Add</button></div>
+  <p class="note">The index is kept on disk in ~/.cache/everdir, so it is available right away after a restart. Turning a drive off removes its data from the index. Choosing folders on a drive indexes only those; the folders above them show just the part that leads there, and can't be deleted from everdir. Network shares are never asked for their free space, and one that can't be reached keeps its last scan.</p>
+  <div class="btns"><button class="go" id="dclose">Done</button></div></dialog>
+<div id="toast"></div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const pctOf=(u,t)=>t?u/t*100:0;
+function fill(u,t){return `${fmt(u)} of ${fmt(t)} used (${pctOf(u,t).toFixed(0)}%)`}
+function meter(u,t){const p=pctOf(u,t);return `<span class="meter${p>=90?' hi':''}" title="${fill(u,t)}"><b style="width:${p.toFixed(1)}%"></b></span>`}
+function fmt(b){if(b<1024)return b+' B';const u=['KB','MB','GB','TB','PB'];let i=-1;do{b/=1024;i++}while(b>=1024&&i<4);return(b<10?b.toFixed(2):b<100?b.toFixed(1):b.toFixed(0))+' '+u[i]}
+function fdate(t){if(!t)return'';const d=new Date(t*1000);return d.toLocaleDateString('sv-SE')+' '+d.toTimeString().slice(0,5)}
+const nf=n=>n.toLocaleString('en-US');
+
+let G=-1;            // scan generation the client's ids belong to
+let scanning=false;
+// Drives hidden from view (mount points); remembered per browser.
+let hidden=[];try{hidden=JSON.parse(localStorage.getItem('everdir.hide')||'[]')}catch{}
+const withHide=p=>hidden.length?p+(p.includes('?')?'&':'?')+'hide='+encodeURIComponent(hidden.join('\n')):p;
+async function api(p,opt){
+  const r=await fetch(opt?p:withHide(p),opt);let d;try{d=await r.json()}catch{d={}}
+  if(r.status===409){resync();throw new Error('index changed')}
+  if(!r.ok)throw new Error(d.error||r.statusText);return d}
+const post=p=>api(p,{method:'POST',headers:{'X-Everdir':'1'}});
+function toast(msg,bad){const d=document.createElement('div');d.textContent=msg;if(bad)d.className='bad';$('#toast').appendChild(d);setTimeout(()=>d.remove(),bad?7000:4000)}
+
+// ---------- virtual list
+class VList{
+  constructor(el,render){this.el=el;this.render=render;this.rows=[];this.h=22;this.inner=document.createElement('div');this.inner.className='vin';el.appendChild(this.inner);
+    el.addEventListener('scroll',()=>this.draw());new ResizeObserver(()=>this.draw()).observe(el)}
+  set(rows,render){this.rows=rows;if(render)this.render=render;this.inner.style.height=rows.length*this.h+'px';this.draw()}
+  draw(){const st=this.el.scrollTop,vh=this.el.clientHeight,a=Math.max(0,(st/this.h|0)-8),b=Math.min(this.rows.length,Math.ceil((st+vh)/this.h)+8);
+    let s='';for(let i=a;i<b;i++)s+=this.render(this.rows[i],i,i*this.h);this.inner.innerHTML=s}
+  show(i){const t=i*this.h,st=this.el.scrollTop,vh=this.el.clientHeight;if(t<st)this.el.scrollTop=t;else if(t+this.h>st+vh)this.el.scrollTop=t+this.h-vh;this.draw()}
+}
+
+// ---------- tree + search list
+const N=new Map();   // id -> node
+let view='tree', sel=null, selInfo=null, rowsT=[], rowsS=[], sort='name', desc=false;
+const list=new VList($('#list'),()=>'');
+function setNode(o){const n=N.get(o.id);if(n){const {kids,open,more,moreAlloc}=n;Object.assign(n,o,{kids,open,more,moreAlloc});return n}
+  Object.assign(o,{kids:null,open:false,more:0,moreAlloc:0});N.set(o.id,o);return o}
+async function loadKids(id,all){const r=await api(`/api/children?id=${id}&gen=${G}&limit=${all?0:500}`);const n=N.get(id);
+  n.kids=r.items.map(c=>setNode(c).id);n.more=r.more;n.moreAlloc=r.moreAlloc}
+const icon=n=>n.kind===1?'<i class="ic dir"></i>':`<i class="ic" style="background:${n.col}"></i>`;
+function rowTree(r,i,y){
+  if(r.more!==undefined)return `<div class="row more" data-i="${i}" style="top:${y}px"><span style="padding-left:${r.d*16+18}px">… ${nf(r.cnt)} more items (${fmt(r.alloc)}) — show all</span></div>`;
+  const n=N.get(r.id);const pct=r.p?n.alloc/r.p*100:100;
+  const tw=n.kind===1&&n.nk?(n.open?'▾':'▸'):'';
+  const part=n.part?' <span class="dim" title="Only the folders chosen under Drives are indexed here">· partly indexed</span>':'';
+  return `<div class="row${n.id===sel?' sel':''}" data-i="${i}" style="top:${y}px"><span style="padding-left:${r.d*16}px"><i class="tw">${tw}</i>${icon(n)}${esc(n.id===0?'/':n.name)}${part}</span>`+
+    `<span class="bar"><b style="width:${pct}%"></b></span><span class="num dim">${pct.toFixed(1)}%</span><span class="num">${fmt(n.alloc)}</span>`+
+    `<span class="num dim">${n.kind===1?nf(n.files):''}</span><span class="dim">${fdate(n.mtime)}</span></div>`}
+function rowSearch(r,i,y){
+  return `<div class="row${r.id===sel?' sel':''}" data-i="${i}" style="top:${y}px"><span>${icon(r)}${esc(r.name)}</span><span class="dim">${esc(r.dir)}</span>`+
+    `<span class="num">${fmt(r.size)}</span><span class="dim">${fdate(r.mtime)}</span></div>`}
+function buildTree(){rowsT=[];const walk=(id,d,p)=>{const n=N.get(id);if(!n)return;rowsT.push({id,d,p});
+    if(n.open&&n.kids){for(const k of n.kids)walk(k,d+1,n.alloc);if(n.more)rowsT.push({more:id,d:d+1,cnt:n.more,alloc:n.moreAlloc})}};
+  walk(0,0,0);if(view==='tree')list.set(rowsT)}
+function setView(v){if(v===view)return;view=v;$('#main').className='pane '+v;
+  const sh=(k,l,c='')=>`<span data-s="${k}" class="${c}">${l}${sort===k?(desc?' ▾':' ▴'):''}</span>`;
+  $('#mhead').innerHTML=v==='tree'?'<span>Name</span><span>Subtree</span><span class="num">%</span><span class="num">Size</span><span class="num">Files</span><span>Modified</span>'
+    :sh('name','Name')+'<span>Folder</span>'+sh('size','Size','num')+sh('mtime','Modified');
+  list.el.scrollTop=0;if(v==='tree'){$('#count').textContent='';list.set(rowsT,rowTree)}else list.set(rowsS,rowSearch)}
+$('#mhead').addEventListener('click',e=>{const k=e.target.dataset.s;if(!k)return;if(sort===k)desc=!desc;else{sort=k;desc=k!=='name'}view='';setView('search');doSearch()});
+
+async function toggle(id,force){const n=N.get(id);if(!n||n.kind!==1||!n.nk)return;n.open=force??!n.open;if(n.open&&!n.kids)await loadKids(id);buildTree()}
+const curRows=()=>view==='tree'?rowsT:rowsS;
+const rowIndex=id=>curRows().findIndex(r=>r.id===id);
+
+list.inner.addEventListener('mousedown',e=>{const el=e.target.closest('.row');if(!el||e.button!==0)return;const r=list.rows[+el.dataset.i];
+  if(r.more!==undefined){loadKids(r.more,true).then(buildTree);return}
+  if(e.target.classList.contains('tw')){toggle(r.id);return}
+  select(r.id)});
+list.inner.addEventListener('dblclick',e=>{const el=e.target.closest('.row');if(!el)return;const r=list.rows[+el.dataset.i];if(r.more!==undefined||e.target.classList.contains('tw'))return;activate(r.id)});
+list.inner.addEventListener('contextmenu',e=>{const el=e.target.closest('.row');if(!el)return;e.preventDefault();const r=list.rows[+el.dataset.i];if(r.id===undefined)return;select(r.id);menu(e,r.id)});
+
+function activate(id){const r=view==='tree'?N.get(id):rowsS.find(x=>x.id===id);if(!r)return;
+  if(r.kind===1){if(view==='tree')toggle(id);else reveal(id)}else act('open',id)}
+
+async function select(id,scroll){
+  sel=id;list.draw();if(scroll){const i=rowIndex(id);if(i>=0)list.show(i)}
+  try{const n=await api(`/api/node?id=${id}&gen=${G}`);if(sel!==id)return;selInfo=n;$('#hov').textContent=`${n.path} — ${fmt(n.alloc)}${n.kind===1?' · '+nf(n.files)+' files':''}`;drawOverlay()}catch{}}
+
+async function reveal(id){
+  const n=await api(`/api/node?id=${id}&gen=${G}`);const anc=n.ancestors;
+  if(view!=='tree'){$('#q').value='';setView('tree')}
+  for(let k=0;k<anc.length-1;k++){const a=setNode(anc[k]);if(!a.kids)await loadKids(a.id);if(!a.kids.includes(anc[k+1].id))await loadKids(a.id,true);a.open=true}
+  buildTree();select(id,true);list.el.focus()}
+
+// ---------- search
+let sq=0,st=null;
+async function doSearch(){const q=$('#q').value.trim();if(!q){setView('tree');return}
+  const s=++sq;let r;try{r=await api(`/api/search?q=${encodeURIComponent(q)}&sort=${sort}&desc=${desc?1:0}&limit=3000`)}catch(e){return}
+  if(s!==sq)return;rowsS=r.results;if(view!=='search')setView('search');else list.set(rowsS,rowSearch);
+  $('#count').textContent=`${nf(r.total)} matches${r.total>rowsS.length?' (showing '+nf(rowsS.length)+')':''} · ${r.ms.toFixed(1)} ms`}
+$('#q').addEventListener('input',()=>{clearTimeout(st);st=setTimeout(doSearch,25)});
+$('#q').addEventListener('keydown',e=>{
+  if(e.key==='Escape'){$('#q').value='';doSearch()}
+  else if(e.key==='ArrowDown'||e.key==='Enter'){e.preventDefault();list.el.focus();const r=curRows();if(r.length&&(sel===null||rowIndex(sel)<0))select(r[0].id,true)}});
+
+// ---------- keyboard
+list.el.addEventListener('keydown',e=>{
+  const rows=curRows();let i=rowIndex(sel);const go=j=>{j=Math.max(0,Math.min(rows.length-1,j));const r=rows[j];if(r&&r.id!==undefined)select(r.id,true)};
+  const page=Math.max(1,(list.el.clientHeight/22|0)-1);
+  switch(e.key){
+    case'ArrowDown':go(i+1);break;case'ArrowUp':if(i<=0&&view==='search')$('#q').focus();else go(i-1);break;
+    case'PageDown':go(i+page);break;case'PageUp':go(i-page);break;case'Home':go(0);break;case'End':go(rows.length-1);break;
+    case'ArrowRight':if(view==='tree'&&sel!==null){const n=N.get(sel);if(n.kind===1&&!n.open)toggle(sel,true);else go(i+1)}break;
+    case'ArrowLeft':if(view==='tree'&&sel!==null){const n=N.get(sel);if(n.open)toggle(sel,false);else{const d=rows[i].d;for(let j=i-1;j>=0;j--)if(rows[j].d<d){go(j);break}}}break;
+    case'Enter':if(sel!==null)activate(sel);break;
+    case'Delete':if(sel!==null)del(sel,e.shiftKey);break;
+    case'Backspace':zoomUp();break;
+    case'z':if(sel!==null)act('zoom',sel);break;
+    default:return}
+  e.preventDefault()});
+document.addEventListener('keydown',e=>{
+  if($('#dlg').open||$('#drv').open)return;
+  if((e.ctrlKey&&(e.key==='f'||e.key==='k'))||(e.key==='/'&&document.activeElement!==$('#q'))){e.preventDefault();$('#q').focus();$('#q').select()}
+  if(e.key==='Escape')hideMenu();
+  if(e.key==='F5'){e.preventDefault();rescan()}});
+
+// ---------- extensions legend
+let EX=[],exTotal=1,hlExt=-1;
+const elist=new VList($('#elist'),(x,i,y)=>`<div class="row${x.id===hlExt?' on':''}" data-i="${i}" style="top:${y}px" title="${nf(x.count)} files"><i class="ic" style="background:${x.col}"></i><span>.${esc(x.ext)||'<span class=dim>(none)</span>'}</span><span class="num">${fmt(x.alloc)}</span><span class="num dim">${(x.alloc/exTotal*100).toFixed(1)}</span></div>`);
+async function loadExts(){const r=await api('/api/exts');EX=r.items;exTotal=r.total||1;elist.set(EX)}
+elist.inner.addEventListener('click',e=>{const el=e.target.closest('.row');if(!el)return;const x=EX[+el.dataset.i];hlExt=hlExt===x.id?-1:x.id;elist.draw();drawOverlay()});
+elist.inner.addEventListener('dblclick',e=>{const el=e.target.closest('.row');if(!el)return;const x=EX[+el.dataset.i];if(!x.ext)return;$('#q').value='ext:'+x.ext;sort='size';desc=true;doSearch()});
+
+// ---------- treemap
+const cv=$('#cv'),ov=$('#ov'),cx=cv.getContext('2d'),ox=ov.getContext('2d');
+const tm={id:0,path:'/',R:null,n:0,W:0,H:0,byId:new Map(),hover:-1,seq:0,crumbs:[]};
+const rid=i=>(tm.R[i*8+4]|tm.R[i*8+5]<<16)>>>0;
+async function loadTreemap(){
+  if(G<0)return;const box=$('#tmbox'),dpr=devicePixelRatio||1;
+  const W=Math.max(1,Math.round(box.clientWidth*dpr)),H=Math.max(1,Math.round(box.clientHeight*dpr)),s=++tm.seq;
+  const res=await fetch(withHide(`/api/treemap?id=${tm.id}&gen=${G}&w=${W}&h=${H}`));
+  if(res.status===409){resync();return}
+  const buf=await res.arrayBuffer();if(s!==tm.seq)return;
+  const dv=new DataView(buf),w=dv.getUint32(0,true),h=dv.getUint32(4,true),n=dv.getUint32(8,true);
+  cv.width=ov.width=w;cv.height=ov.height=h;
+  cx.putImageData(new ImageData(new Uint8ClampedArray(buf,16,w*h*4),w,h),0,0);
+  tm.R=new Uint16Array(buf,16+w*h*4,n*8);tm.n=n;tm.W=w;tm.H=h;tm.byId=new Map();for(let i=0;i<n;i++)tm.byId.set(rid(i),i);
+  tm.hover=-1;drawOverlay()}
+function hit(e){if(!tm.R)return-1;const b=ov.getBoundingClientRect(),x=(e.clientX-b.left)*tm.W/b.width,y=(e.clientY-b.top)*tm.H/b.height,R=tm.R;let f=-1;
+  for(let i=0;i<tm.n;i++){const o=i*8;if(x>=R[o]&&x<R[o+2]&&y>=R[o+1]&&y<R[o+3])f=i}return f}
+function strokeRect(i,c,lw){const R=tm.R,o=i*8;ox.lineWidth=lw;ox.strokeStyle=c;ox.strokeRect(R[o]+lw/2,R[o+1]+lw/2,R[o+2]-R[o]-lw,R[o+3]-R[o+1]-lw)}
+// Rects are in pre-order, so a rect's folder is the nearest earlier rect one level up.
+function parentRect(i){const d=tm.R[i*8+7]&255;for(let j=i-1;j>=0;j--)if((tm.R[j*8+7]&255)<d)return j;return-1}
+function drawOverlay(){
+  ox.clearRect(0,0,ov.width,ov.height);if(!tm.R)return;const R=tm.R,dpr=devicePixelRatio||1;
+  if(hlExt>=0){ox.fillStyle='rgba(255,255,255,.6)';for(let i=0;i<tm.n;i++){const o=i*8;if(R[o+6]===hlExt&&(R[o+7]>>8)===0)ox.fillRect(R[o],R[o+1],R[o+2]-R[o],R[o+3]-R[o+1])}}
+  if(tm.hover>=0){const p=parentRect(tm.hover);if(p>0)strokeRect(p,'rgba(255,255,255,.8)',2*dpr);strokeRect(tm.hover,'rgba(255,255,255,.55)',1*dpr)}
+  if(sel!==null&&selInfo&&selInfo.id===sel){
+    let i=tm.byId.get(sel);if(i===undefined)for(const a of [...selInfo.ancestors].reverse()){i=tm.byId.get(a.id);if(i!==undefined)break}
+    if(i!==undefined&&i!==0||sel===tm.id){strokeRect(i,'#000',4*dpr);strokeRect(i,'#fff',2*dpr)}}}
+let hovSeq=0;
+ov.addEventListener('mousemove',e=>{const i=hit(e);if(i===tm.hover)return;tm.hover=i;drawOverlay();if(i<0)return;const s=++hovSeq;
+  api(`/api/node?id=${rid(i)}&gen=${G}&lite=1`).then(n=>{if(s===hovSeq)$('#hov').textContent=`${n.path} — ${fmt(n.alloc)}`}).catch(()=>{})});
+ov.addEventListener('mouseleave',()=>{tm.hover=-1;drawOverlay()});
+ov.addEventListener('click',e=>{const i=hit(e);if(i<0)return;const id=rid(i);if(view==='tree')reveal(id);else select(id)});
+ov.addEventListener('dblclick',e=>{const b=ov.getBoundingClientRect(),x=(e.clientX-b.left)*tm.W/b.width,y=(e.clientY-b.top)*tm.H/b.height,R=tm.R;
+  for(let i=0;i<tm.n;i++){const o=i*8;if((R[o+7]&255)===1&&(R[o+7]>>8)===1&&x>=R[o]&&x<R[o+2]&&y>=R[o+1]&&y<R[o+3]){setZoom(rid(i));return}}});
+ov.addEventListener('contextmenu',e=>{e.preventDefault();const i=hit(e);if(i<0)return;const id=rid(i);select(id);menu(e,id)});
+ov.addEventListener('auxclick',e=>{if(e.button===1)zoomUp()});
+async function setZoom(id){const n=await api(`/api/node?id=${id}&gen=${G}`);tm.id=n.kind===1?id:n.ancestors[n.ancestors.length-2].id;
+  const anc=n.kind===1?n.ancestors:n.ancestors.slice(0,-1);tm.crumbs=anc;tm.path=n.kind===1?n.path:n.path.replace(/\/[^/]*$/,'')||'/';
+  $('#crumbs').innerHTML=anc.map((a,k)=>`<a data-id="${a.id}">${esc(a.id===0?'/':a.name)}</a>`).join('<span class="sep">›</span>')+
+    `<span class="dim" style="margin-left:10px">${fmt(anc[anc.length-1].alloc)}${(d=>d&&d.disk_size?' · drive '+fill(d.disk_used,d.disk_size):'')(VD.find(d=>d.mp===tm.path))} · double-click to drill in, middle-click/Backspace to go up</span>`;
+  loadTreemap()}
+function zoomUp(){if(tm.crumbs.length>1)setZoom(tm.crumbs[tm.crumbs.length-2].id)}
+$('#crumbs').addEventListener('click',e=>{const id=e.target.dataset.id;if(id!==undefined)setZoom(+id)});
+let rsz;new ResizeObserver(()=>{clearTimeout(rsz);rsz=setTimeout(loadTreemap,120)}).observe($('#tmbox'));
+$('#split').addEventListener('mousedown',e=>{e.preventDefault();const mv=ev=>document.body.style.setProperty('--top',Math.max(120,Math.min(innerHeight-160,ev.clientY-$('header').offsetHeight))+'px');
+  const up=()=>{removeEventListener('mousemove',mv);removeEventListener('mouseup',up)};addEventListener('mousemove',mv);addEventListener('mouseup',up)});
+
+// ---------- actions
+function hideMenu(){$('#menu').style.display='none'}
+addEventListener('mousedown',e=>{if(!e.target.closest('#menu'))hideMenu()});
+async function menu(e,id){
+  const n=await api(`/api/node?id=${id}&gen=${G}&lite=1`).catch(()=>null);if(!n)return;const m=$('#menu'),dir=n.kind===1;
+  m.innerHTML=`<div data-a="open">${dir?'Open folder':'Open'}<kbd>Enter</kbd></div><div data-a="reveal">Show in ${/Mac/.test(navigator.platform)?'Finder':'Dolphin'}</div>`+
+    `<div data-a="tree">Show in tree</div><div data-a="zoom">${dir?'Zoom treemap here':'Zoom treemap to its folder'}<kbd>Z</kbd></div><div data-a="copy">Copy path</div><hr>`+
+    `<div data-a="trash" class="danger">Move to Trash<kbd>Del</kbd></div><div data-a="perm" class="danger">Delete permanently<kbd>Shift+Del</kbd></div>`;
+  m.style.display='block';m.style.left=Math.min(e.clientX,innerWidth-m.offsetWidth-4)+'px';m.style.top=Math.min(e.clientY,innerHeight-m.offsetHeight-4)+'px';
+  m.onclick=ev=>{const a=ev.target.closest('[data-a]')?.dataset.a;if(!a)return;hideMenu();act(a,id,n)}}
+async function act(a,id,n){
+  try{switch(a){
+    case'open':await post(`/api/open?id=${id}&gen=${G}`);break;
+    case'reveal':await post(`/api/open?id=${id}&gen=${G}&how=reveal`);break;
+    case'tree':await reveal(id);break;
+    case'zoom':await setZoom(id);break;
+    case'copy':n=n||await api(`/api/node?id=${id}&gen=${G}&lite=1`);await navigator.clipboard.writeText(n.path);toast('Copied '+n.path);break;
+    case'trash':await del(id,false);break;case'perm':await del(id,true);break}}catch(err){toast(err.message,true)}}
+function ask(perm,n){return new Promise(res=>{const d=$('#dlg');d.className=perm?'perm':'';
+  $('#dt').textContent=perm?'Delete permanently?':'Move to Trash?';
+  $('#db').innerHTML=`<code>${esc(n.path)}</code><p>${n.kind===1?'Folder · '+nf(n.files)+' files · ':''}${fmt(n.alloc)} on disk</p>`+(perm?'<p style="color:var(--bad)">This cannot be undone.</p>':'<p class="dim">Space is reclaimed when you empty the Trash.</p>');
+  $('#dyes').textContent=perm?'Delete permanently':'Move to Trash';
+  const done=v=>{d.close();res(v)};$('#dyes').onclick=()=>done(true);$('#dno').onclick=()=>done(false);d.onclose=()=>res(false);d.showModal();$('#dyes').focus()})}
+async function del(id,perm){
+  const n=await api(`/api/node?id=${id}&gen=${G}`);
+  if(n.part){toast(`Only part of ${n.path} is indexed, so everdir won't delete it`,true);return}
+  if(!await ask(perm,n))return;
+  try{await post(`/api/delete?id=${id}&gen=${G}&perm=${perm?1:0}`);toast(`${perm?'Deleted':'Trashed'} ${n.path} (${fmt(n.alloc)})`)}catch(e){toast('Delete failed: '+e.message,true)}
+  const rows=curRows(),i=rowIndex(id),next=rows[i+1]&&rows[i+1].id!==undefined&&!(view==='tree'&&rows[i+1].d>rows[i].d)?rows[i+1].id:n.ancestors[n.ancestors.length-2]?.id;
+  await refresh();if(next!==undefined&&N.has(next)||view==='search')select(next??0,true);list.el.focus()}
+async function refresh(){
+  const open=[...N.values()].filter(n=>n.open&&n.kids);
+  setNode(await api(`/api/node?id=0&gen=${G}&lite=1`));
+  await Promise.all(open.map(n=>loadKids(n.id,n.more===0&&n.kids.length>500).catch(()=>{})));
+  buildTree();loadTreemap();loadExts();poll(true);if(view==='search')doSearch();
+  if(tm.id)setZoom(tm.id).catch(()=>setZoom(0))}
+
+// ---------- status / sync
+// Fill of the shown drives' filesystems, as df counts it (shared/reflinked data once).
+function diskOf(ds){const on=ds.filter(d=>d.shown&&d.disk_size);if(!on.length)return'';
+  const u=on.reduce((a,d)=>a+d.disk_used,0),t=on.reduce((a,d)=>a+d.disk_size,0);return ` indexed · ${on.length>1?'drives':'drive'} ${fill(u,t)}`}
+function renderStatus(s){scanning=s.scanning;renderView(s.drives||[]);
+  $('#stat').textContent=s.gen===0?'Indexing…':`${nf(s.files)} files · ${nf(s.dirs)} folders · ${fmt(s.alloc)}${diskOf(s.drives||[])} · scanned ${fdate(s.scanned_at)} in ${(s.scan_ms/1000).toFixed(1)} s${s.errors?' · '+nf(s.errors)+' unreadable dirs':''}${scanning?' · scanning '+(s.scanning_mp||'')+'…':''}`;
+  $('#rescan').disabled=scanning;$('#rescan').textContent=scanning?'Scanning…':'Rescan'}
+let syncing=null;
+function resync(){return syncing??=(async()=>{try{
+  const s=await (await fetch(withHide('/api/status'))).json();renderStatus(s);if(s.gen===G||s.gen===0)return;
+  G=s.gen;N.clear();sel=null;selInfo=null;const root=setNode(await api(`/api/node?id=0&gen=${G}&lite=1`));root.open=true;await loadKids(0);buildTree();
+  let zid=0;try{zid=(await api(`/api/node?path=${encodeURIComponent(tm.path)}&lite=1`)).id}catch{}
+  await Promise.all([setZoom(zid),loadExts()]);if(view==='search')doSearch();
+}finally{syncing=null}})()}
+let pt;async function poll(once){try{const s=await (await fetch(withHide('/api/status'))).json();renderStatus(s);if(s.gen!==G&&s.gen>0)await resync()}catch{$('#stat').textContent='daemon not reachable'}
+  if(!once){clearTimeout(pt);pt=setTimeout(poll,scanning||G<=0?700:15000)}}
+async function rescan(){await post(withHide('/api/rescan'));scanning=true;poll()}
+$('#rescan').onclick=rescan;
+
+// ---------- drive filter
+let VD=[];
+function renderView(ds){VD=ds;$('#vwrap').hidden=ds.length<2;const on=ds.filter(d=>!hidden.includes(d.mp));
+  $('#view').textContent=(on.length===ds.length?'All drives':on.map(d=>d.mp).join(', ')||'No drives')+' ▾';
+  if($('#vpop').classList.contains('on'))return;
+  $('#vpop').innerHTML=ds.map(d=>`<label><input type="checkbox" data-mp="${esc(d.mp)}"${hidden.includes(d.mp)?'':' checked'}><span>${esc(d.mp)}</span><span class="dim" title="Indexed">${fmt(d.alloc)}</span>${d.disk_size?meter(d.disk_used,d.disk_size)+`<span class="dim">${pctOf(d.disk_used,d.disk_size).toFixed(0)}% of ${fmt(d.disk_size)}</span>`:'<span></span><span></span>'}</label>`).join('')+
+    '<div class="act"><button data-all>Show all</button></div>'}
+function setHidden(h){hidden=h;try{localStorage.setItem('everdir.hide',JSON.stringify(h))}catch{}(syncing||Promise.resolve()).finally(()=>{G=-1;resync()})}
+$('#view').onclick=()=>{const p=$('#vpop');if(p.classList.toggle('on'))return;renderView(VD)};
+$('#vpop').addEventListener('change',e=>{const mp=e.target.dataset.mp;if(mp===undefined)return;
+  let h=hidden.filter(m=>m!==mp);if(!e.target.checked)h.push(mp);
+  if(VD.every(d=>h.includes(d.mp))){e.target.checked=true;toast('At least one drive has to be shown',true);return}
+  setHidden(h)});
+$('#vpop').addEventListener('click',e=>{if(e.target.dataset.all===undefined)return;setHidden([]);$('#vpop').querySelectorAll('input').forEach(i=>i.checked=true)});
+addEventListener('mousedown',e=>{if(!e.target.closest('#vwrap')&&$('#vpop').classList.contains('on')){$('#vpop').classList.remove('on');renderView(VD)}});
+
+// ---------- drives
+const EVERY=[[0,'Only when I click Scan'],[3600,'Every hour'],[21600,'Every 6 hours'],[86400,'Every day'],[604800,'Every week'],[2592000,'Every 30 days']];
+const ago=t=>{const s=Date.now()/1000-t;return s<90?'just now':s<5400?Math.round(s/60)+' min ago':s<129600?Math.round(s/3600)+' h ago':Math.round(s/86400)+' days ago'};
+function everySel(d){const o=EVERY.some(e=>e[0]===d.every)?EVERY:[...EVERY,[d.every,`Every ${Math.round(d.every/3600)} h`]];
+  return `<select data-every="${esc(d.mp)}"${d.enabled?'':' disabled'}>${o.map(([v,l])=>`<option value="${v}"${v===d.every?' selected':''}>${l}</option>`).join('')}</select>`}
+function hwOf(d){
+  const auto=d.fstype==='autofs'?'automount, mounted when scanned':'';
+  if(!d.mounted)return'not mounted';
+  if(d.added)return['folder'+(d.source?' on '+d.source:''),auto||d.fstype,d.network&&!auto?'network':''].filter(Boolean).join(' · ');
+  if(d.network)return auto||[d.source,d.fstype,'network'].join(' · ');
+  return[d.disk,d.model,d.fstype,d.dev_size?fmt(d.dev_size):'',d.hdd?'HDD':'SSD'].filter(Boolean).join(' · ')}
+function driveRow(d){
+  const hw=hwOf(d);
+  const sc=d.scan;let sub=d.scanning?'Scanning now…':d.queued?'Waiting to scan…':
+    !d.enabled?'Not indexed':sc?`${nf(sc.files)} files · ${fmt(sc.alloc)} · scanned ${ago(sc.scanned_at)} in ${(sc.scan_ms/1000).toFixed(1)} s${sc.errors?' · '+nf(sc.errors)+' unreadable dirs':''}`:'Not scanned yet';
+  if(d.mounted&&d.disk_size)sub+=` · drive ${fill(d.disk_used,d.disk_size)}`;
+  if(d.enabled&&!d.mounted)sub+=' · left out until it is mounted again';
+  const bad=d.failed&&!d.scanning&&!d.queued;if(bad)sub+=` · last scan failed: ${d.failed}`;
+  const check=d.added?'<span></span>':`<input type="checkbox" data-en="${esc(d.mp)}"${d.enabled?' checked':''}${d.root?' disabled title="The system drive is always indexed"':''}>`;
+  return `<div class="d${d.enabled?'':' off'}">${check}`+
+    `<div class="info"><span class="mp">${esc(d.mp)}</span> <span class="dim">${esc(hw)}</span>${d.mounted&&d.disk_size?' '+meter(d.disk_used,d.disk_size):''}</div>${everySel(d)}`+
+    `<button data-scan="${esc(d.mp)}"${d.enabled&&d.mounted&&!d.scanning&&!d.queued?'':' disabled'}>Scan now</button>`+
+    `<div class="sub${d.scanning||d.queued?' busy':bad?' bad':''}">${esc(sub)}</div>${pathsRow(d)}</div>`}
+// Folders to index instead of the whole drive.
+function pathsRow(d){
+  if(d.added)return `<div class="paths"><span class="dim">Added folder</span><button data-remove="${esc(d.mp)}" title="Stop indexing this folder on its own">Remove</button></div>`;
+  const chips=d.paths.map(p=>`<span class="chip">${esc(p)}<b data-rm="${esc(d.mp)}" data-p="${esc(p)}" title="Stop indexing this folder">×</b></span>`).join('');
+  return `<div class="paths">${d.paths.length?'<span class="dim">Only</span>'+chips:'<span class="dim">Whole drive</span>'}`+
+    (d.mounted?`<button data-addp="${esc(d.mp)}" title="Index only chosen folders on this drive">${d.paths.length?'+ Folder':'Only some folders…'}</button>`:'')+'</div>'}
+let dpt,DR=[];
+async function loadDrives(){clearTimeout(dpt);if(!$('#drv').open)return;
+  try{const r=await api('/api/drives');DR=r.drives;if(!document.activeElement?.matches('#dlist select,#dlist input[type=text]'))$('#dlist').innerHTML=r.drives.map(driveRow).join('');
+    if(r.drives.some(d=>d.scanning||d.queued))poll(true)}catch(e){toast(e.message,true)}
+  dpt=setTimeout(loadDrives,1500)}
+async function setDrive(mp,k,v){try{await post(`/api/drives?mp=${encodeURIComponent(mp)}&${k}=${v}`)}catch(e){toast(e.message,true)}loadDrives();setTimeout(()=>poll(true),400)}
+// On failure the path being typed stays in its box.
+async function setPaths(mp,paths){try{await post(`/api/drives?mp=${encodeURIComponent(mp)}&paths=${encodeURIComponent(paths.join('\n'))}`)}catch(e){toast(e.message,true);return}
+  document.activeElement?.blur();loadDrives();setTimeout(()=>poll(true),400)}
+$('#dlist').addEventListener('change',e=>{const t=e.target;
+  if(t.dataset.en!==undefined)setDrive(t.dataset.en,'enabled',t.checked?1:0);
+  if(t.dataset.every!==undefined)setDrive(t.dataset.every,'every',t.value)});
+$('#dlist').addEventListener('click',async e=>{const t=e.target,d=DR.find(x=>x.mp===(t.dataset.addp??t.dataset.rm));
+  if(t.dataset.addp!==undefined){const i=document.createElement('input');i.type='text';i.dataset.newp=t.dataset.addp;i.spellcheck=false;
+    i.placeholder=`Folder to index, e.g. ${d.mp==='/'?'/home':d.mp+'/Media'} or a path relative to ${d.mp} — Enter to add`;t.replaceWith(i);i.focus();return}
+  if(t.dataset.rm!==undefined){if(d)setPaths(d.mp,d.paths.filter(p=>p!==t.dataset.p));return}
+  if(t.dataset.remove!==undefined){try{await post(`/api/drives/remove?mp=${encodeURIComponent(t.dataset.remove)}`)}catch(err){toast(err.message,true)}
+    loadDrives();setTimeout(()=>poll(true),400);return}
+  const mp=t.dataset.scan;if(mp===undefined)return;
+  try{await post(`/api/rescan?mp=${encodeURIComponent(mp)}`);scanning=true;poll()}catch(err){toast(err.message,true)}loadDrives()});
+$('#dlist').addEventListener('keydown',e=>{const t=e.target,d=DR.find(x=>x.mp===t.dataset.newp);if(!d)return;
+  if(e.key==='Escape'){e.preventDefault();t.blur();loadDrives()}
+  else if(e.key==='Enter'&&t.value.trim())setPaths(d.mp,[...d.paths,t.value.trim()])});
+async function addFolder(){const i=$('#addp'),v=i.value.trim();if(!v)return;
+  try{await post(`/api/drives/add?path=${encodeURIComponent(v)}`)}catch(e){toast(e.message,true);return}
+  i.value='';loadDrives();setTimeout(()=>poll(true),400)}
+$('#addb').onclick=addFolder;
+$('#addp').addEventListener('keydown',e=>{if(e.key==='Enter')addFolder()});
+$('#drives').onclick=()=>{$('#drv').showModal();loadDrives()};
+$('#dclose').onclick=()=>$('#drv').close();
+setView('search');setView('tree');
+poll();
+</script>
+</body>
+</html>

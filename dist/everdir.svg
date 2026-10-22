@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffc35a"/>
+      <stop offset=".55" stop-color="#f58a12"/>
+      <stop offset="1" stop-color="#c85a00"/>
+    </linearGradient>
+    <linearGradient id="handle" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f08a1c"/>
+      <stop offset="1" stop-color="#9c4300"/>
+    </linearGradient>
+    <radialGradient id="glass" cx=".35" cy=".3" r=".8">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#dfe8f2"/>
+    </radialGradient>
+    <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity=".75"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <clipPath id="lens"><circle cx="104" cy="104" r="62"/></clipPath>
+  </defs>
+  <!-- handle -->
+  <path d="M150 158 L214 222" stroke="#5a2600" stroke-opacity=".35" stroke-width="40" stroke-linecap="round" transform="translate(3 4)"/>
+  <path d="M150 158 L214 222" stroke="url(#handle)" stroke-width="36" stroke-linecap="round"/>
+  <path d="M154 154 L208 208" stroke="#ffd08a" stroke-opacity=".55" stroke-width="7" stroke-linecap="round"/>
+  <!-- lens with treemap -->
+  <circle cx="104" cy="104" r="62" fill="url(#glass)"/>
+  <g clip-path="url(#lens)" stroke="#fff" stroke-width="3">
+    <rect x="42" y="42" width="70" height="78" fill="#3c6eff"/>
+    <rect x="112" y="42" width="54" height="44" fill="#eb3c3c"/>
+    <rect x="112" y="86" width="30" height="34" fill="#3cd23c"/>
+    <rect x="142" y="86" width="24" height="34" fill="#e6dc32"/>
+    <rect x="42" y="120" width="44" height="46" fill="#3cdcdc"/>
+    <rect x="86" y="120" width="44" height="46" fill="#dc3cdc"/>
+    <rect x="130" y="120" width="36" height="46" fill="#ff8c1e"/>
+  </g>
+  <ellipse cx="88" cy="70" rx="40" ry="20" fill="url(#shine)" transform="rotate(-30 88 70)"/>
+  <!-- ring -->
+  <circle cx="104" cy="104" r="68" fill="none" stroke="#7a3300" stroke-opacity=".35" stroke-width="22" transform="translate(2 3)"/>
+  <circle cx="104" cy="104" r="68" fill="none" stroke="url(#ring)" stroke-width="20"/>
+  <circle cx="104" cy="104" r="76" fill="none" stroke="#ffd58f" stroke-opacity=".6" stroke-width="2.5"/>
+</svg>

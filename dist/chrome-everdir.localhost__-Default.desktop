@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=everdir
+Comment=everdir app window (taskbar icon mapping for Chrome's Wayland app id)
+Exec=everdir open
+Icon=everdir
+NoDisplay=true
+StartupWMClass=chrome-everdir.localhost__-Default

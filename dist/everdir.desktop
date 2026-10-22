@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=everdir
+Comment=Search all files and see what uses disk space
+Exec=everdir open
+Icon=everdir
+StartupWMClass=chrome-everdir.localhost__-Default
+Terminal=false
+Categories=Utility;System;
